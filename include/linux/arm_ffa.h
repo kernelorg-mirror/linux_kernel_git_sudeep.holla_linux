@@ -6,6 +6,7 @@
 #ifndef _LINUX_ARM_FFA_H
 #define _LINUX_ARM_FFA_H
 
+#include <linux/arm-smccc.h>
 #include <linux/bitfield.h>
 #include <linux/device.h>
 #include <linux/module.h>
@@ -178,6 +179,17 @@ static inline void *ffa_dev_get_drvdata(struct ffa_device *fdev)
 }
 
 struct ffa_partition_info;
+
+#if IS_BUILTIN(CONFIG_ARM_FFA_VERSION_NEGOTIATION)
+int arm_ffa_version_get(void (*invoke)(const struct arm_smccc_1_2_regs *args,
+				       struct arm_smccc_1_2_regs *res),
+			u32 input_version, u32 *version);
+#else
+static inline int arm_ffa_version_get(
+	void (*invoke)(const struct arm_smccc_1_2_regs *args,
+		       struct arm_smccc_1_2_regs *res),
+	u32 input_version, u32 *version) { return -EOPNOTSUPP; }
+#endif /* CONFIG_ARM_FFA_VERSION_NEGOTIATION */
 
 #if IS_REACHABLE(CONFIG_ARM_FFA_TRANSPORT)
 struct ffa_device *

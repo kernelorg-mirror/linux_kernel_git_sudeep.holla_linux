@@ -138,30 +138,33 @@ static u32 ffa_compatible_version_find(u32 version)
 	return FFA_DRIVER_VERSION;
 }
 
+static void ffa_version_invoke(const ffa_value_t *args, ffa_value_t *res)
+{
+	invoke_ffa_fn(*args, res);
+}
+
 static int ffa_version_check(u32 *version)
 {
-	ffa_value_t ver;
+	int ret;
+	u32 ver;
 
-	invoke_ffa_fn((ffa_value_t){
-		      .a0 = FFA_VERSION, .a1 = FFA_DRIVER_VERSION,
-		      }, &ver);
-
-	if ((s32)ver.a0 == FFA_RET_NOT_SUPPORTED) {
+	ret = arm_ffa_version_get(ffa_version_invoke, FFA_DRIVER_VERSION, &ver);
+	if (ret) {
 		pr_info("FFA_VERSION returned not supported\n");
-		return -EOPNOTSUPP;
+		return ret;
 	}
 
-	if (FFA_MAJOR_VERSION(ver.a0) > FFA_MAJOR_VERSION(FFA_DRIVER_VERSION)) {
+	if (FFA_MAJOR_VERSION(ver) > FFA_MAJOR_VERSION(FFA_DRIVER_VERSION)) {
 		pr_err("Incompatible v%d.%d! Latest supported v%d.%d\n",
-		       FFA_MAJOR_VERSION(ver.a0), FFA_MINOR_VERSION(ver.a0),
+		       FFA_MAJOR_VERSION(ver), FFA_MINOR_VERSION(ver),
 		       FFA_MAJOR_VERSION(FFA_DRIVER_VERSION),
 		       FFA_MINOR_VERSION(FFA_DRIVER_VERSION));
 		return -EINVAL;
 	}
 
-	if (ver.a0 < FFA_MIN_VERSION) {
+	if (ver < FFA_MIN_VERSION) {
 		pr_err("Incompatible v%d.%d! Earliest supported v%d.%d\n",
-		       FFA_MAJOR_VERSION(ver.a0), FFA_MINOR_VERSION(ver.a0),
+		       FFA_MAJOR_VERSION(ver), FFA_MINOR_VERSION(ver),
 		       FFA_MAJOR_VERSION(FFA_MIN_VERSION),
 		       FFA_MINOR_VERSION(FFA_MIN_VERSION));
 		return -EINVAL;
@@ -169,9 +172,9 @@ static int ffa_version_check(u32 *version)
 
 	pr_info("Driver version %d.%d\n", FFA_MAJOR_VERSION(FFA_DRIVER_VERSION),
 		FFA_MINOR_VERSION(FFA_DRIVER_VERSION));
-	pr_info("Firmware version %d.%d found\n", FFA_MAJOR_VERSION(ver.a0),
-		FFA_MINOR_VERSION(ver.a0));
-	*version = ffa_compatible_version_find(ver.a0);
+	pr_info("Firmware version %d.%d found\n", FFA_MAJOR_VERSION(ver),
+		FFA_MINOR_VERSION(ver));
+	*version = ffa_compatible_version_find(ver);
 
 	return 0;
 }

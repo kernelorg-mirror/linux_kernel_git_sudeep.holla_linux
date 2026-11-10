@@ -66,23 +66,18 @@ static int acpi_ffh_ffa_features(struct acpi_ffh_data *ffh_ctxt, u32 fid)
 
 static int acpi_ffh_ffa_init(struct acpi_ffh_data *ffh_ctxt)
 {
-	struct arm_smccc_1_2_regs args = { }, res;
+	struct arm_smccc_1_2_regs args, res;
 	u32 version;
-	int ret = 0;
+	int ret;
 
 	guard(mutex)(&acpi_ffh_ffa_lock);
 	if (acpi_ffh_ffa_initialized)
 		return 0;
 
-	args.a0 = FFA_VERSION;
-	args.a1 = FFA_VERSION_1_2;
-	acpi_ffh_ffa_invoke(ffh_ctxt, &args, &res);
-	version = res.a0;
-	if ((s32)version == SMCCC_RET_NOT_SUPPORTED ||
-	    FFA_MAJOR_VERSION(version) != 1 || version < FFA_VERSION_1_2) {
-		ret = -EOPNOTSUPP;
-		return ret;
-	}
+	ret = arm_ffa_version_get(ffh_ctxt->invoke_ffh64_fn, FFA_VERSION_1_2,
+				  &version);
+	if (ret || version < FFA_VERSION_1_2)
+		return -EOPNOTSUPP;
 
 	ret = acpi_ffh_ffa_features(ffh_ctxt, FFA_MSG_SEND_DIRECT_REQ2);
 	if (ret)

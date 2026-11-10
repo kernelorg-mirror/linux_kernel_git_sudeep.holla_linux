@@ -15,6 +15,11 @@ config ARM_FFA_TRANSPORT
 	  This driver provides interface for all the client drivers making
 	  use of the features offered by ARM FF-A.
 
+config ARM_FFA_VERSION_NEGOTIATION
+	bool
+	depends on ARM64
+	default y if ACPI_FFH || ARM_FFA_TRANSPORT
+
 config ARM_FFA_SMCCC
 	bool
 	default ARM_FFA_TRANSPORT
